@@ -11,4 +11,7 @@ This project began as an example to work with Rust.  Below are some of the learn
 
 # CLI Specifics
 * https://rust-cli-recommendations.sunshowers.io/index.html
+* https://rust-cli.github.io/book/in-depth/config-files.html
 
+# Borrowing and References
+* https://www.fpcomplete.com/blog/rust-asref-asderef/
