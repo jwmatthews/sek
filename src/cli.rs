@@ -1,41 +1,32 @@
-use std::path::PathBuf;
+use clap::{Arg, Command};
+use dirs;
+use once_cell::sync::OnceCell;
+use std::ffi::OsString;
 
-use clap::{Parser, Subcommand};
+static DEFAULT_CONFIG_FILE: OnceCell<OsString> = OnceCell::new();
 
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-#[command(name = "sek")]
-#[command(author = "John W. Matthews <jwmatthews@gmail.com>")]
-#[command(version = "0.1")]
-#[command(about = "Helps manage Shell Environments for Kubernetes clusters", long_about = None)]
-pub struct Cli {
-    /// Optional name to operate on
-    pub name: Option<String>,
+pub fn cli() -> Command {
+    let home_dir = dirs::home_dir().unwrap();
+    DEFAULT_CONFIG_FILE
+        .set(OsString::from(format!(
+            "{}/.sek/config.yaml",
+            home_dir.display()
+        )))
+        .unwrap();
 
-    // QUESTION:  How can I set a default value
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE", default_value = "~/.sek/config")]
-    // Need to set the default value for config with let home_dir = dirs::home_dir().unwrap()
-    pub config: Option<PathBuf>,
-
-    /// Turn debugging information on
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub debug: u8,
-
-    #[command(subcommand)]
-    pub command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-pub enum Commands {
-    /// does testing things
-    Test {
-        /// lists test values
-        #[arg(short, long)]
-        list: bool,
-    },
-    Refresh {
-        #[arg(short, long)]
-        list: bool,
-    },
+    Command::new("sek")
+        .about("Helper to organize working with multiple Kubernetes environments")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .arg(
+            Arg::new("config")
+                .value_name("CONFIG")
+                .help("Configuration file path")
+                .default_value(DEFAULT_CONFIG_FILE.get().unwrap().as_os_str()),
+        )
+        .allow_external_subcommands(true)
+        .subcommand(
+            Command::new("refresh")
+                .about("Refresh information about existing Kubernetes environments"),
+        )
 }

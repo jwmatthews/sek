@@ -21,7 +21,8 @@ pub fn get_default_config() -> Config {
     return cfg;
 }
 
-pub fn init(config_file_path: &Path) -> Result<Config, io::Error> {
+pub fn init(config_file_name: &str) -> Result<Config, io::Error> {
+    let config_file_path = Path::new(config_file_name);
     let mut cfg: Config = get_default_config();
     if config_file_path.is_file() {
         println!(
