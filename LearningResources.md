@@ -3,6 +3,7 @@ This project began as an example to work with Rust.  Below are some of the learn
 
 ## General Rust resources
 * https://doc.rust-lang.org/book/
+* https://doc.rust-lang.org/style-guide/
 * https://github.com/rust-lang/rustlings
 * https://doc.rust-lang.org/rust-by-example/
 * https://rust-lang-nursery.github.io/rust-cookbook/
