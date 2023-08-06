@@ -1,6 +1,7 @@
 mod cli;
 mod commands;
 mod config;
+use colored::*;
 
 fn main() {
     let matches = cli::cli().get_matches();
@@ -9,7 +10,7 @@ fn main() {
 
     match matches.subcommand() {
         Some(("refresh", _sub_matches)) => {
-            println!("Refresh invoked!");
+            println!("{}", "Refresh invoked!".green());
             commands::refresh(cfg);
         }
         _ => unreachable!(), // If all subcommands are defined above, anything else is unreachable!()

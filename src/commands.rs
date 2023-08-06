@@ -1,5 +1,6 @@
 mod refresh;
 use crate::config;
+use colored::*;
 
 use std::{
     fs, io,

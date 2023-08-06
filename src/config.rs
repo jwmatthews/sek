@@ -1,3 +1,4 @@
+use colored::*;
 use dirs;
 use serde::{Deserialize, Serialize};
 use serde_yaml;
@@ -30,10 +31,12 @@ pub fn init(config_file_name: &str) -> Result<Config, io::Error> {
     if config_file_path.is_file() {
         println!(
             "Attempting to open '{}' to parse for configuration.",
-            config_file_path.display()
+            config_file_path.display().to_string().cyan()
         );
-        cfg = parse(config_file_path)
-            .expect(&format!("Failed to parse: {}", &config_file_path.display()))
+        cfg = parse(config_file_path).expect(&format!(
+            "Failed to parse: {}",
+            &config_file_path.display().to_string().red()
+        ))
     }
     ensure_or_create_dir(&cfg.sek_home);
 
@@ -43,8 +46,8 @@ pub fn init(config_file_name: &str) -> Result<Config, io::Error> {
         let yaml = serde_yaml::to_string(&cfg).expect("Failed to deserialize");
         println!(
             "Attempting to write config data \n'{}'\n to\n'{}'",
-            &yaml,
-            config_file_path.display()
+            &yaml.to_string().yellow(),
+            config_file_path.display().to_string().cyan()
         );
         let mut output = File::create(config_file_path)?;
         write!(output, "{}", yaml)?;
@@ -62,7 +65,7 @@ pub fn parse(config_file_path: &Path) -> Result<Config, serde_yaml::Error> {
 pub fn ensure_or_create_dir(dir_name: &str) {
     let p = Path::new(dir_name);
     if !p.is_dir() {
-        println!("Creating directory: {}", dir_name);
+        println!("Creating directory: {}", dir_name.cyan());
         fs::create_dir_all(p).expect("Directory create failed");
     }
 }
