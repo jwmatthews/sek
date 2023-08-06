@@ -12,17 +12,23 @@ pub struct Config {
     pub sek_home: String,
     pub agnosticd_resource_dirs: Vec<String>,
 }
+impl Default for Config {
+    fn default() -> Config {
+        let home_dir = dirs::home_dir().unwrap();
+        Config {
+            sek_home: format!("{}/.sek", &home_dir.display()),
+            agnosticd_resource_dirs: vec![
+                format!("{}/.agnosticd", &home_dir.display()),
+                format!("{}/Desktop/share/agnosticd", &home_dir.display()),
+            ],
+        }
+    }
+}
 
 pub fn get_default_config() -> Config {
-    let home_dir = dirs::home_dir().unwrap();
-    let cfg = Config {
-        sek_home: format!("{}/.sek", &home_dir.display()),
-        agnosticd_resource_dirs: vec![
-            format!("{}/.agnosticd", &home_dir.display()),
-            format!("{}/Desktop/share/agnosticd", &home_dir.display()),
-        ],
-    };
-    return cfg;
+    Config {
+        ..Default::default()
+    }
 }
 
 pub fn init(config_file_name: &str) -> Result<Config, io::Error> {

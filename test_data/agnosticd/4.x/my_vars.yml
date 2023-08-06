@@ -1,0 +1,63 @@
+## Must Change
+email: "jmatthew@somewhere.com"
+
+# The 'guid' will be used to construct a unique URL for your cluster
+# it will also be used to generate the output directory for all of the
+# files created for this cluster, ssh_conf, kubeconfig, etc.
+#
+guid: jwm0418ocp412a
+output_dir: "/Users/jmatthews/.agnosticd/{{ guid }}"
+
+subdomain_base_suffix: .something.com
+HostedZoneId: BAD
+
+
+key_name: libra # your private key [ must be present at ~/.ssh/<key_name>.pem ]
+cloud_provider: ec2
+#aws_region: us-east-1
+aws_region: us-east-2
+#aws_region: us-west-2
+
+# https://access.redhat.com/solutions/7007136
+ocp4_installer_version: "4.12.12"
+
+
+cloud_tags: # list of custom tags to add to your aws resources
+- owner: "{{ email }}"
+
+worker_instance_count: 6
+
+# Below is to enable OCS 4 and install MTC 
+#default_workloads: ["ocp4-workload-project-request-template", "ocp4-workload-ocs-poc", "ocp4-workload-migration", "ocp4-workload-mig-verification"]
+#infra_workloads: ["ocp4-workload-ocs-poc"]
+#infra_workloads: ["ocp4-workload-project-request-template"]
+
+
+#default_workloads: ["ocp4-workload-ocs-poc"]
+ocs_namespace: openshift-storage
+#ocs_mcg_core_cpu: 100m
+#ocs_mcg_db_cpu: 100m
+#ocs_mcg_core_mem: 1Gi
+ocs_mcg_pv_pool_bucket_name: migstorage
+ocs_migstorage: true
+ocs_migstorage_namespace: openshift-storage
+ocs_operator_workload_destroy: false
+
+#ocs_ceph_mds_cpu: 500m
+#ocs_ceph_mon_cpu: 500m
+#ocs_ceph_mgr_cpu: 500m
+#ocs_ceph_osd_cpu: 500m
+
+ocs_mcg_core_cpu: 200m
+ocs_mcg_core_mem: 256Mi
+ocs_mcg_db_cpu: 200m
+ocs_mcg_db_mem: 256Mi
+ocs_ceph_mds_cpu: 256m
+ocs_ceph_mds_mem: 512Mi
+ocs_ceph_mon_cpu: 256m
+ocs_ceph_mon_mem: 512Mi
+ocs_ceph_mgr_cpu: 256m
+ocs_ceph_mgr_mem: 512Mi
+ocs_ceph_osd_cpu: 256m
+ocs_ceph_osd_mem: 512Mi
+
