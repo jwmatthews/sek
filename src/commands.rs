@@ -10,7 +10,6 @@ use std::{
 
 use kube::config::Kubeconfig;
 use kube::config::NamedContext;
-use kube::config::NamedCluster; 
 
 //use serde_yaml::Value;
 
@@ -124,10 +123,10 @@ fn parse_cluster_info(potential_dirs: Vec<PathBuf>) -> HashMap<PathBuf, ClusterE
     return cluster_info;
 }
 
-fn get_named_context(target_name: &str, contexts: Vec<NamedContext>) -> Option<NamedContext> {
+fn get_named_context(target_name: &str, contexts: &Vec<NamedContext>) -> Option<NamedContext> {
     for c in contexts {
         if c.name == target_name {
-            return Some(c);
+            return Some(c.clone());
         }
     }
     return None;
@@ -137,13 +136,29 @@ fn parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
     let r = Kubeconfig::read_from(kubeconfig_filename);
     match r {
         Ok(kc) => {
-            return match get_current_cluster(kc) {
-                Some(cluster) => {
+            return match get_current_cluster(&kc) {
+                Some(cluster_name) => {
                     println!(
                         "{} {}",
                         "info".yellow(),
-                        &cluster);
-                    Some(cluster)
+                        &cluster_name);
+                    let cluster = kc.clusters.iter().find(|&c| c.name == cluster_name);
+                    println!("clusters: {:?}", cluster);
+                    match cluster {
+                        Some(c) => {
+                            match &c.cluster {
+                                Some(x) => {
+                                    println!("cluster: {:?}", x);
+                                    x.server.clone()
+                                }
+                                None => { None }
+                            }
+                        }
+                        None => {
+                            println!("{} {}", "error".red(), "Unable to find cluster");
+                            None
+                        }
+                    }
                 }
                 None => {
                     println!("{} {}", "error".red(), "Unable to find context");
@@ -158,10 +173,10 @@ fn parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
     }
 }
 
-fn get_current_cluster(kc: Kubeconfig) -> Option<String> {
+fn get_current_cluster(kc: &Kubeconfig) -> Option<String> {
     let current_context = kc.current_context.as_ref().unwrap();
     println!("{} {}", "info".yellow(), &current_context);
-    let ctx = get_named_context(current_context, kc.contexts);
+    let ctx = get_named_context(current_context, &kc.contexts);
     return match ctx {
         Some(c) => {
             Some(c.context.unwrap().cluster)
