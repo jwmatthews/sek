@@ -1,4 +1,3 @@
-mod refresh;
 use crate::config;
 use colored::*;
 use serde::{Deserialize, Serialize};
@@ -10,8 +9,10 @@ use std::{
 };
 
 use kube::config::Kubeconfig;
+use kube::config::NamedContext;
+use kube::config::NamedCluster; 
 
-use serde_yaml::Value;
+//use serde_yaml::Value;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ClusterEntry {
@@ -123,7 +124,56 @@ fn parse_cluster_info(potential_dirs: Vec<PathBuf>) -> HashMap<PathBuf, ClusterE
     return cluster_info;
 }
 
+fn get_named_context(target_name: &str, contexts: Vec<NamedContext>) -> Option<NamedContext> {
+    for c in contexts {
+        if c.name == target_name {
+            return Some(c);
+        }
+    }
+    return None;
+}
+
 fn parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
+    let r = Kubeconfig::read_from(kubeconfig_filename);
+    match r {
+        Ok(kc) => {
+            return match get_current_cluster(kc) {
+                Some(cluster) => {
+                    println!(
+                        "{} {}",
+                        "info".yellow(),
+                        &cluster);
+                    Some(cluster)
+                }
+                None => {
+                    println!("{} {}", "error".red(), "Unable to find context");
+                    None
+                }
+            }
+        }
+        Err(e) => {
+            println!("{}", e);
+            None
+        }
+    }
+}
+
+fn get_current_cluster(kc: Kubeconfig) -> Option<String> {
+    let current_context = kc.current_context.as_ref().unwrap();
+    println!("{} {}", "info".yellow(), &current_context);
+    let ctx = get_named_context(current_context, kc.contexts);
+    return match ctx {
+        Some(c) => {
+            Some(c.context.unwrap().cluster)
+        }
+        None => {
+            println!("{} {}", "error".red(), "Unable to find context");
+            None
+        }
+    }
+}
+
+fn _old_parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
     //let r = kube::config::Kubeconfig::read_from(kubeconfig_filename);
     let r = Kubeconfig::read_from(kubeconfig_filename);
     match r {
@@ -298,6 +348,9 @@ mod tests {
         // Positive test-case, expect success
         let kubeconfig =
             "test_data/agnosticd/jwm0706ocp413a/ocp4-cluster_jwm0603ocp413a_kubeconfig";
+        let expected_server = "https://api.cluster-jwm0603ocp413a.jwm0603ocp413a.mg.somewhere.com:6443";
+        let expected_current_context = "admin";
+
         match parse_cluster_api_endpoint(kubeconfig) {
             Some(endpoint) => {
                 assert_eq!(endpoint, "foo");
