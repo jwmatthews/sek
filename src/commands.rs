@@ -1,7 +1,6 @@
 use crate::config;
 use colored::*;
 use serde::{Deserialize, Serialize};
-use serde_yaml::{self};
 use std::collections::HashMap;
 use std::{
     fmt, fs, io,
@@ -11,7 +10,6 @@ use std::{
 use kube::config::Kubeconfig;
 use kube::config::NamedContext;
 
-//use serde_yaml::Value;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ClusterEntry {
@@ -143,12 +141,13 @@ fn parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
                         "info".yellow(),
                         &cluster_name);
                     let cluster = kc.clusters.iter().find(|&c| c.name == cluster_name);
-                    println!("clusters: {:?}", cluster);
+                    //println!("clusters: {:?}", cluster);
                     match cluster {
                         Some(c) => {
                             match &c.cluster {
                                 Some(x) => {
-                                    println!("cluster: {:?}", x);
+                                    // TODO Below as_ref/unwrap feels wrong
+                                    println!("{}: {}", "server".yellow(), x.server.as_ref().unwrap().cyan());
                                     x.server.clone()
                                 }
                                 None => { None }
@@ -187,58 +186,6 @@ fn get_current_cluster(kc: &Kubeconfig) -> Option<String> {
         }
     }
 }
-
-fn _old_parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
-    //let r = kube::config::Kubeconfig::read_from(kubeconfig_filename);
-    let r = Kubeconfig::read_from(kubeconfig_filename);
-    match r {
-        Ok(kc) => {
-            let current_context = kc.current_context.as_ref().unwrap();
-            // Loop through Kubeconfig.contexts
-            // // Search NamedContexts looking for what matches current_context
-            // // Return that Context
-            // Get the Cluster string
-            println!(
-                "{} {}",
-                "info".yellow(),
-                kc.current_context.as_ref().unwrap()
-            );
-            return kc.current_context;
-        }
-        Err(e) => {
-            println!("{} {}", "error".red(), e);
-            return None;
-        }
-    }
-}
-
-fn _parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
-    //let yaml = fs::read_to_string(kubeconfig).expect(&format!("Unable to open: {}", &kubeconfig));
-    //let cfg: Config = serde_yaml::from_str(&yaml)?;
-    //Some(String::from("TBD-ParseEndPoint"))
-
-    let f = std::fs::File::open(kubeconfig_filename)
-        .expect(&format!("Unable to open: {}", &kubeconfig_filename));
-    let r = serde_yaml::from_reader::<fs::File, serde_yaml::Value>(f);
-    match r {
-        Ok(data) => {
-            let endpoint = data["foo"].as_str().map(|s| s.to_string());
-            //.ok_or("Could not find key foo.bar in something.yaml");
-            return endpoint;
-            //return Some(endpoint);
-        }
-        Err(e) => {
-            return None;
-        }
-    }
-}
-
-//  TODO:
-// Create a new module to parse kubeconfig yaml files
-//  Need to parse kubeconfig
-//  Get the current context
-//  Read the contexts and find the match with what is current
-//  Then can get the endpoint.
 
 fn ensure_dir_has_cluster_info(dir: &PathBuf) -> Option<HashMap<String, PathBuf>> {
     let endings = vec!["kubeconfig", "kubeadmin-password"];
@@ -364,11 +311,10 @@ mod tests {
         let kubeconfig =
             "test_data/agnosticd/jwm0706ocp413a/ocp4-cluster_jwm0603ocp413a_kubeconfig";
         let expected_server = "https://api.cluster-jwm0603ocp413a.jwm0603ocp413a.mg.somewhere.com:6443";
-        let expected_current_context = "admin";
 
         match parse_cluster_api_endpoint(kubeconfig) {
             Some(endpoint) => {
-                assert_eq!(endpoint, "foo");
+                assert_eq!(endpoint, expected_server);
             }
             None => {
                 assert!(false);
@@ -377,7 +323,7 @@ mod tests {
         // Negative test-case, expect it can't parse
         let kubeconfig = "test_data/agnosticd/jwm_bad_kubeconfig/ocp4-cluster_bad_kubeconfig";
         match parse_cluster_api_endpoint(kubeconfig) {
-            Some(endpoint) => {
+            Some(_) => {
                 assert!(false);
             }
             None => {
