@@ -17,3 +17,11 @@ This project began as an example to work with Rust.  Below are some of the learn
 
 # Borrowing and References
 * https://www.fpcomplete.com/blog/rust-asref-asderef/
+
+# Rust Kubernetes 
+* Kubeconf: https://docs.rs/kube-conf/latest/kube_conf/
+  * https://github.com/esphen/kube-conf/blob/master/src/lib.rs
+* Kube-rs: https://docs.rs/crate/kube/0.85.0
+  * Kubeconfig: https://docs.rs/kube/latest/kube/config/struct.Kubeconfig.html
+    * https://github.com/kube-rs/kube/blob/main/kube-client/src/config/mod.rs
+  

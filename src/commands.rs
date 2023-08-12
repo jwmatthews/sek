@@ -1,13 +1,17 @@
 mod refresh;
 use crate::config;
 use colored::*;
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use serde_yaml::{self};
+use std::collections::HashMap;
 use std::{
     fmt, fs, io,
     path::{Path, PathBuf},
 };
+
+use kube::config::Kubeconfig;
+
+use serde_yaml::Value;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ClusterEntry {
@@ -34,7 +38,7 @@ impl fmt::Display for ClusterEntry {
         // is very similar to `println!`.
         write!(
             f,
-            "kubeconfig_path: {}, admin_password: {}, cluster_api_endpoint: {}",
+            "\n\t\tkubeconfig_path: {}, \n\t\tadmin_password: {}, \n\t\tcluster_api_endpoint: {}",
             self.kubeconfig_path.bright_purple(),
             self.admin_password.bright_purple(),
             self.cluster_api_endpoint.bright_purple()
@@ -65,6 +69,7 @@ fn find_provisioned_agnosticd_dirs(cfg: config::Config) -> Vec<PathBuf> {
         println!("Looking at: {}", r.cyan());
         match read_dirs_from_dir(&r) {
             Ok(v) => {
+                println!("Inside find_provisioned_agnosticd_dirs: v = {:?}", v);
                 found_dirs.extend(v);
             }
             Err(e) => {
@@ -86,25 +91,89 @@ fn parse_cluster_info(potential_dirs: Vec<PathBuf>) -> HashMap<PathBuf, ClusterE
         // Ensure each dir has both has a file "kubeconfig" and "kubeadmin-password"
         match ensure_dir_has_cluster_info(&d) {
             Some(map) => {
-                cluster_info.insert(
-                    d,
-                    ClusterEntry {
-                        cluster_api_endpoint: String::from("TBD-ParseEndPoint"),
-                        // TODO: could clean up to remove unwrap
-                        kubeconfig_path: map.get("kubeconfig").unwrap().display().to_string(),
-                        admin_password: map
-                            .get("kubeadmin-password")
-                            .unwrap()
-                            .display()
-                            .to_string(),
-                    },
-                );
+                let kubeconfig = map.get("kubeconfig").unwrap().display().to_string();
+                match parse_cluster_api_endpoint(&kubeconfig) {
+                    Some(api_endpoint) => {
+                        cluster_info.insert(
+                            d,
+                            ClusterEntry {
+                                cluster_api_endpoint: api_endpoint,
+                                // TODO: could clean up to remove unwrap
+                                kubeconfig_path: kubeconfig.clone(),
+                                admin_password: map
+                                    .get("kubeadmin-password")
+                                    .unwrap()
+                                    .display()
+                                    .to_string(),
+                            },
+                        );
+                    }
+                    None => {
+                        println!(
+                            "{} {} unable to process cluster_api_endpoint",
+                            "Skipping".yellow(),
+                            d.display().to_string().cyan()
+                        )
+                    }
+                }
             }
             None => {}
         }
     }
     return cluster_info;
 }
+
+fn parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
+    //let r = kube::config::Kubeconfig::read_from(kubeconfig_filename);
+    let r = Kubeconfig::read_from(kubeconfig_filename);
+    match r {
+        Ok(kc) => {
+            let current_context = kc.current_context.as_ref().unwrap();
+            // Loop through Kubeconfig.contexts
+            // // Search NamedContexts looking for what matches current_context
+            // // Return that Context
+            // Get the Cluster string
+            println!(
+                "{} {}",
+                "info".yellow(),
+                kc.current_context.as_ref().unwrap()
+            );
+            return kc.current_context;
+        }
+        Err(e) => {
+            println!("{} {}", "error".red(), e);
+            return None;
+        }
+    }
+}
+
+fn _parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
+    //let yaml = fs::read_to_string(kubeconfig).expect(&format!("Unable to open: {}", &kubeconfig));
+    //let cfg: Config = serde_yaml::from_str(&yaml)?;
+    //Some(String::from("TBD-ParseEndPoint"))
+
+    let f = std::fs::File::open(kubeconfig_filename)
+        .expect(&format!("Unable to open: {}", &kubeconfig_filename));
+    let r = serde_yaml::from_reader::<fs::File, serde_yaml::Value>(f);
+    match r {
+        Ok(data) => {
+            let endpoint = data["foo"].as_str().map(|s| s.to_string());
+            //.ok_or("Could not find key foo.bar in something.yaml");
+            return endpoint;
+            //return Some(endpoint);
+        }
+        Err(e) => {
+            return None;
+        }
+    }
+}
+
+//  TODO:
+// Create a new module to parse kubeconfig yaml files
+//  Need to parse kubeconfig
+//  Get the current context
+//  Read the contexts and find the match with what is current
+//  Then can get the endpoint.
 
 fn ensure_dir_has_cluster_info(dir: &PathBuf) -> Option<HashMap<String, PathBuf>> {
     let endings = vec!["kubeconfig", "kubeadmin-password"];
@@ -183,7 +252,7 @@ mod tests {
         // Tests we found potential directories
         let cfg = get_test_config();
         let found_dirs = find_provisioned_agnosticd_dirs(cfg);
-        assert_eq!(found_dirs.len(), 8);
+        assert_eq!(found_dirs.len(), 9);
     }
 
     #[test]
@@ -221,6 +290,31 @@ mod tests {
         ];
         for d in expected {
             assert!(cluster_info.contains_key(Path::new(d)));
+        }
+    }
+
+    #[test]
+    fn test_parse_cluster_api_endpoint() {
+        // Positive test-case, expect success
+        let kubeconfig =
+            "test_data/agnosticd/jwm0706ocp413a/ocp4-cluster_jwm0603ocp413a_kubeconfig";
+        match parse_cluster_api_endpoint(kubeconfig) {
+            Some(endpoint) => {
+                assert_eq!(endpoint, "foo");
+            }
+            None => {
+                assert!(false);
+            }
+        }
+        // Negative test-case, expect it can't parse
+        let kubeconfig = "test_data/agnosticd/jwm_bad_kubeconfig/ocp4-cluster_bad_kubeconfig";
+        match parse_cluster_api_endpoint(kubeconfig) {
+            Some(endpoint) => {
+                assert!(false);
+            }
+            None => {
+                assert!(true);
+            }
         }
     }
 }
