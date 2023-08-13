@@ -132,6 +132,25 @@ fn get_named_context(target_name: &str, contexts: &Vec<NamedContext>) -> Option<
 
 fn parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
     let r = Kubeconfig::read_from(kubeconfig_filename);
+
+    r.ok().map(|kc| {
+        get_current_cluster(&kc).and_then(|cluster_name| {
+            println!(
+                "{} {}",
+                "info".yellow(),
+                &cluster_name);
+            kc.clusters.iter().find(|&c| c.name == cluster_name).and_then(|c| {
+                c.cluster.as_ref().and_then(|x| {
+                    println!("{}: {}", "server".yellow(), x.server.as_ref().unwrap().cyan());
+                    x.server.clone()
+                })
+            })
+        })
+    }).flatten()
+}
+
+fn _ugly_parse_cluster_api_endpoint(kubeconfig_filename: &str) -> Option<String> {
+    let r = Kubeconfig::read_from(kubeconfig_filename);
     match r {
         Ok(kc) => {
             return match get_current_cluster(&kc) {

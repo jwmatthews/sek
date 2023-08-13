@@ -24,4 +24,11 @@ This project began as an example to work with Rust.  Below are some of the learn
 * Kube-rs: https://docs.rs/crate/kube/0.85.0
   * Kubeconfig: https://docs.rs/kube/latest/kube/config/struct.Kubeconfig.html
     * https://github.com/kube-rs/kube/blob/main/kube-client/src/config/mod.rs
-  
+
+# General Tips
+* Clean up chains of Option or Result
+  * https://doc.rust-lang.org/std/option/enum.Option.html#method.and
+  * Convert from Result into Option:
+    * https://stackoverflow.com/questions/28572101/what-is-a-clean-way-to-convert-a-result-into-an-option
+  * https://doc.rust-lang.org/rust-by-example/flow_control/let_else.html
+  * 
